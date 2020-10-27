@@ -6,6 +6,8 @@
 
 XcodeAVR is an Xcode project template that creates a working AVR build environment integrated into Xcode.  This will allow you to build, flash and do (limited) debugging from within Xcode.
 
+The template is also set up to include the avr-libc header files as well as the MCU specific header files such that code completion will work as expected with register names, etc. from within Xcode.
+
 Although this will work with Arduino boards using the Arduino bootloader, this is __*NOT*__ an Arduino development environment and does not use nor need anything related to the Arduino tool chain and its libraries.
 
 The accompanying Makefile was built to work stand-alone from the command line as well as integrated in the Xcode project template.
