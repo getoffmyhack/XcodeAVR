@@ -1,0 +1,452 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use File::Basename qw(dirname);
+use File::Path qw(make_path);
+
+
+#-------------------------------------------------------------------------------
+#
+# XcodeAVR_setup
+#
+# A perl script to install the XcodeAVR Project Template
+#
+# This perl scripts installs an Xcode project template in order to easily create
+# new AVR projects within Xcode.  The template includes several C source and
+# header files along with a Makefile and TemplateInfo.plist which defines the 
+# build environment for Xcode.
+#
+# The template files are copied to the local user's Xcode Project Templates
+# folder.
+#
+#-------------------------------------------------------------------------------
+
+# Define the input / output filenames for the template plist
+my $templatefile_in         = "templateinfo.plist.in";
+my $templatefile_out        = "TemplateInfo.plist";
+
+# Text tags for parcing sections of the plist input file
+my $template_section_start  = "###!### START SECTION";
+my $template_section_end    = "###!### END SECTION";
+
+# search string while gathering data from the avr tools
+my $avr_header_search_start = "#include <...> search starts here:";
+my $avr_mcu_search_start    = "Known MCU names:";
+
+# The binary tools needed to compile AVR projects
+my %avr_tools = (
+                    'CC'        => 'avr-gcc',
+                    'OBJCOPY'   => 'avr-objcopy',
+                    'OBJDUMP'   => 'avr-objdump',
+                    'SIZE'      => 'avr-size',
+                    'NM'        => 'avr-nm',
+                    'AVRDUDE'   => 'avrdude'
+                 );
+
+# build the paths needed for installing template files
+my $home_directory      = $ENV{HOME};
+my $template_path_base  = "Library/Developer/Xcode/Templates/Project Templates";
+my $template_directory  = "XcodeAVR";
+
+my $template_path       = $home_directory     . "/" .
+                          $template_path_base . "/" .
+                          $template_directory;
+
+my $output_directory    = "XcodeAVR.xctemplate";
+$templatefile_out       = $output_directory . "/" . $templatefile_out;
+
+# function dispatch table for processing the sections of the input file.
+# the key literal will be matched with a section heading in the plist input file
+my %section_functions   =   (
+                            'shared_settings'       => \&process_shared_settings,
+                            'avr_mcu'               => \&process_avr_mcu,
+                            'avrdude_programmers'   => \&process_avrdude_programmers
+                            );
+
+#-------------------------------------------------------------------------------
+#
+# gather of the needed data / tools / paths / programmers / etc needed tp
+# build the xcode TemplateInfo.plist file
+#
+#-------------------------------------------------------------------------------
+
+my %paths_dict;
+my %template_dict;
+
+# get colon separated list of paths needed for avr tools executables
+$paths_dict{'avr_tools_paths'} = get_avr_tools_paths();
+
+# get spaced separated list of directories for the HEADER_SEARCH_PATH
+$paths_dict{'avr_header_search_paths'} = get_avr_header_search_paths();
+
+# add to template dictionary
+$template_dict{'shared_settings'} = \%paths_dict;
+
+# get dictionary of target MCUs and the compiler define 
+# (key=>value) = (mcu_name=>mcu_define) and add to template dictionary
+my %avr_mcu_dict = get_avr_mcu_dict();
+$template_dict{'avr_mcu'} = \%avr_mcu_dict;
+
+# get list of supported programmes from avrdude and add to template dictionary
+my @avrdude_programmers = get_avrdude_programmers();
+$template_dict{'avrdude_programmers'} = \@avrdude_programmers;
+
+#-------------------------------------------------------------------------------
+#
+# all of the needed data / paths / programmers / etc / has been collected.
+# build the TemplateInfo.plist file to be installed.
+#
+#-------------------------------------------------------------------------------
+
+# process the input template and generate the output file
+process_template();
+
+# install the template to the final location
+install_template();
+
+#-------------------------------------------------------------------------------
+#
+# process_template()
+#
+# reads template file, parses each section as needed, writes final output file
+#
+#-------------------------------------------------------------------------------
+
+sub process_template {
+
+    # open input template file for reading
+    open(my $template_in_handle, "<", $templatefile_in)
+        or die "Can't open < $templatefile_in: $!";
+
+    # open output file for writing
+    open(my $template_out_handle, ">", $templatefile_out)
+        or die "Can't open < $templatefile_in: $!";
+    
+    # Process each line in in file
+    while(<$template_in_handle>) {
+        
+        my $line = $_;
+
+        # if a template section was found, use dispath table
+        # to call proper processing function using the section name found
+        # in the template file.  The section name is also used to pass
+        # the matching data structure to the processing function
+        if($line =~ /^$template_section_start (\S+)$/){
+            $section_functions{$1}->(
+                                        $template_dict{$1}, 
+                                        $template_in_handle,
+                                        $template_out_handle
+                                    );
+
+        } else {
+            print $template_out_handle $line;
+        }
+
+    }
+
+    close($template_in_handle);
+    close($template_out_handle);
+
+}
+
+
+#-------------------------------------------------------------------------------
+#
+# process_shared_settings()
+#
+# reads template lines until END SECTION marker, parses template lines
+# adding the tools path to the PATH and the HEADER_SEARCH_PATHS
+#
+#-------------------------------------------------------------------------------
+
+sub process_shared_settings {
+    my $dict        = shift();
+    my $in_file     = shift();
+    my $out_file    = shift();
+  
+    my @lines;
+
+    # read template lines until section end, replace text as needed
+    while(<$in_file>) {
+        if(m/$template_section_end/) {
+            last;
+        } else {
+            $_ =~ s/{(.*?)}/$$dict{$1}/;
+            print $out_file $_;
+        }
+    }
+}
+
+#-------------------------------------------------------------------------------
+#
+# process_avr_mcu()
+#
+# parses the input template file until "END SECTION" then iterates over list
+# of MCUs creating an entry for each supported MCU
+# 
+#-------------------------------------------------------------------------------
+
+sub process_avr_mcu {
+    my $dict        = shift();
+    my $in_file     = shift();
+    my $out_file    = shift();
+  
+    my @template_lines;
+
+    # collect the lines needed to make a list of MCUs
+    while(<$in_file>) {
+        if(m/$template_section_end/) {
+            last;
+        } else {
+            push(@template_lines, $_);
+        }
+    }
+    
+    # iterate over the passed in dictionary creating one entry for
+    # each key, with both the key and the value needed for the XML entry.
+    while(my($mcu, $mcu_define) = each %$dict) {
+
+        for(@template_lines) {
+            my $line = $_;
+            $line =~ s/{mcu}/$mcu/;
+            $line =~ s/{mcu_define}/$mcu_define/;
+            print $out_file $line;
+        }
+
+    }
+}
+
+#-------------------------------------------------------------------------------
+#
+# process_avrdude_programmers()
+#
+# parses the input template file until "END SECTION" then iterates over list
+# of supported avrdude programmers creating the output lines.
+#
+#-------------------------------------------------------------------------------
+
+sub process_avrdude_programmers {
+    my $programmer_array    = shift();
+    my $in_file             = shift();
+    my $out_file            = shift();
+  
+    my @template_lines;
+
+    # read template file until END SECTION marker
+    while(<$in_file>) {
+        if(m/$template_section_end/) {
+            last;
+        } else {
+            push(@template_lines, $_);
+        }
+    }
+
+    # loop through programmers, create output for each item using input template
+    for(@$programmer_array) {
+        my $programmer = $_;
+        for(@template_lines) {
+            my $template_line = $_;
+            $template_line =~ s/{programmer}/$programmer/;
+            print $out_file $template_line;
+        }
+    }
+}
+
+#-------------------------------------------------------------------------------
+#
+# install_template()
+#
+# installs new template into Xcode templates folder
+#
+#-------------------------------------------------------------------------------
+
+sub install_template {
+
+    # make the directory needed to install template
+    make_path($template_path);
+
+    # use macOS's cp -R to copy template folder
+    my $temp = `cp -R $output_directory \"$template_path\"`;
+}
+
+#-------------------------------------------------------------------------------
+#
+# get_avr_tools_path()
+#
+# locate the path(s) to the avr-tools executables and return a colon separated
+# list of each directory that contains an avr executable to be used as part
+# of the PATH env variables.
+#
+#-------------------------------------------------------------------------------
+
+sub get_avr_tools_paths {
+
+    my $paths;    
+    my %avr_tools_paths;
+    
+    # loop through all avr tools locating their path
+    while (my ($bin_var, $bin) = each %avr_tools) {
+        my $bin_path = `which $bin`;
+
+        if ($bin_path ne "") {
+            chomp($bin_path);
+            my $avr_tools_dir = dirname($bin_path);
+            $avr_tools{$bin_var} = $bin_path;
+            $avr_tools_paths{$avr_tools_dir}++;
+        } else {
+                die "ERROR: AVR tool '$bin' not found, exiting.\n";
+        }
+    }
+
+    # create a ':' separated list of paths
+    my $path_count = 0;
+    my $path;
+
+    foreach my $tool_path (keys %avr_tools_paths) {
+        
+        if($path_count > 0) {
+            $path = $path . ":";
+        }
+        $path = $path . $tool_path;
+        $path_count++;
+
+    }
+
+    return $path;
+
+}
+
+#-------------------------------------------------------------------------------
+#
+# get_avr_header_search_paths()
+#
+# uses the avr-cpp executable to get a list of the system header file paths
+# and retuns a space separated string of paths
+#
+#-------------------------------------------------------------------------------
+
+sub get_avr_header_search_paths {
+
+    my @header_search_list = `echo | avr-cpp -v 2>&1`;
+    my $header_list;
+    my $found_list  = 0;
+
+    # loop through command output looking for header start string
+    foreach (@header_search_list) {
+        chomp($_);
+        
+        if($_ eq $avr_header_search_start) {
+            $found_list = 1;
+
+        # found list of header files, add to space separated list    
+        } elsif ($found_list == 1) {
+            if($_ =~ /^ (.*)/) {
+                $header_list .= $1 . " ";
+            } else {
+                last;
+            }
+        }
+    }
+
+    # remove trailing space
+    chop($header_list);
+
+    # return list of header seach directories
+    return $header_list;
+
+}
+
+#-------------------------------------------------------------------------------
+#
+# get_avr_mcu_dist()
+#
+# get a list MCUs supported by the avr-gcc complier. Return a dictionary
+# with the MCU name as the key and the MCU #DEFINE as the value.
+#
+#-------------------------------------------------------------------------------
+
+sub get_avr_mcu_dict {
+    my @mcu_list = `avr-gcc --target-help`;
+    my $found_list  = 0;
+    my @mcu_array;
+
+    # loop through outpug loooking for search start string
+    foreach(@mcu_list) {
+        chomp($_);
+        
+        
+        if($_ eq $avr_mcu_search_start) {
+            $found_list = 1;
+        # found the start line, create list of MCUs    
+        } elsif ($found_list == 1) {
+            if($_ =~ /^  (.*)/) {
+                my @mcu_line_array = split(" ", $1);
+                push(@mcu_array, @mcu_line_array);
+            } else {
+                last;
+            }
+        }
+    }
+    
+    # pass to function to get MCU defines and return dictionary
+    return get_mcu_defines(@mcu_array);
+}
+
+#-------------------------------------------------------------------------------
+#
+# get_mcu_defines()
+#
+# converts the MCU name into the needed #DEFINE and returns a dictionary with
+# mcu as key and DEFINE as value.
+#
+#-------------------------------------------------------------------------------
+
+sub get_mcu_defines {
+
+    my @array = @_;
+    my @mcu_families = ('XMEGA', 'MEGA', 'TINY');
+    my %mcu_dict;
+
+    # iterate through array of MCU names
+    foreach(@array) {
+        my $mcu = $_;
+
+        # create all upper case MCU DEFINE
+        my $define = uc("__AVR_" . $mcu . '__');
+        
+        # convert the AVR family name to lower case
+        foreach(@mcu_families) {
+            $define =~ s/($_)/lc($1)/ge;
+        }
+
+        # create dictionary
+        $mcu_dict{$mcu} = $define;
+    }
+
+    return %mcu_dict;
+}
+
+#-------------------------------------------------------------------------------
+#
+# get_avrdude_programmers()
+#
+# this function will query avrdude for a list of know programmers and return
+# the list as a simple array.
+#
+#-------------------------------------------------------------------------------
+
+sub get_avrdude_programmers {
+
+    my @programmers = `avrdude -c\? 2>&1`;
+    my @programmer_array;
+
+    foreach(@programmers) {
+        if($_ =~ /^  (\S+)\s+=.*$/) {
+            push(@programmer_array, $1);
+        }
+    }
+
+    return @programmer_array;
+}

@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Kind</key>
+	<string>Xcode.Xcode3.ProjectTemplateUnitKind</string>
+	<key>Identifier</key>
+	<string>getoffmyhack.XcodeAVR.xcode4.template</string>
+	<key>Concrete</key>
+	<true/>
+	<key>Description</key>
+	<string>Template to create AVR project</string>
+	<key>SortOrder</key>
+	<integer>9</integer>
+	<key>Platforms</key>
+	<array>
+		<string>com.apple.platform.cross-platform</string>
+	</array>
+	<key>AllowedTypes</key>
+	<array>
+		<string>public.c-header</string>
+		<string>public.c-source</string>
+	</array>
+	<key>Ancestors</key>
+	<array>
+		<string>com.apple.dt.unit.base</string>
+	</array>
+	<key>Definitions</key>
+	<dict>
+		<key>include</key>
+		<dict>
+			<key>Path</key>
+			<string>include</string>
+		</dict>
+		
+		<key>src</key>
+		<dict>
+			<key>Path</key>
+			<string>src</string>
+		</dict>
+
+		<key>include/globals.h</key>
+		<dict>
+			<key>Path</key>
+			<string>include/globals.h</string>
+			<key>Group</key>
+			<array>
+				<string>include</string>
+			</array>
+		</dict>
+		
+		<key>include/main.h</key>
+		<dict>
+			<key>Path</key>
+			<string>include/main.h</string>
+			<key>Group</key>
+			<array>
+				<string>include</string>
+			</array>
+		</dict>
+
+		<key>src/main.c</key>
+		<dict>
+			<key>Path</key>
+			<string>src/main.c</string>
+			<key>Group</key>
+			<array>
+				<string>src</string>
+			</array>
+		</dict>
+
+		<key>Makefile</key>
+		<dict>
+			<key>Path</key>
+			<string>Makefile</string>
+		</dict>
+	</dict>
+	<key>Nodes</key>
+	<array>
+		<string>include/globals.h</string>
+		<string>include/main.h</string>
+		<string>src/main.c</string>
+		<string>Makefile</string>
+	</array>
+	<key>Project</key>
+	<dict>
+		<key>Configurations</key>
+		<dict>
+			<key>Debug</key>
+			<dict/>
+			<key>Release</key>
+			<dict/>
+		</dict>
+		<key>SharedSettings</key>
+###!### START SECTION shared_settings
+		<dict>
+			<key>PATH</key>
+			<string>$(PATH):$(PROJECT_DIR):{avr_tools_paths}</string>
+			<key>HEADER_SEARCH_PATHS</key>
+			<string>{avr_header_search_paths} $(PROJECT_DIR)/include</string>
+			<key>PRODUCT_NAME</key>
+			<string>$(TARGET_NAME)</string>
+		</dict>
+###!### END SECTION
+	</dict>
+	<key>Targets</key>
+	<array>
+		<dict>
+			<key>Name</key>
+			<string>Build</string>
+			<key>BuildToolPath</key>
+			<string>make</string>
+			<key>TargetType</key>
+			<string>Legacy</string>
+			<key>BuildToolArgsString</key>
+			<string>build -C &quot;$(PROJECT)&quot;</string>
+		</dict>
+		<dict>
+			<key>Name</key>
+			<string>All</string>
+			<key>BuildToolPath</key>
+			<string>make</string>
+			<key>TargetType</key>
+			<string>Legacy</string>
+			<key>BuildToolArgsString</key>
+			<string>all -C &quot;$(PROJECT)&quot;</string>
+		</dict>
+		<dict>
+			<key>Name</key>
+			<string>Flash</string>
+			<key>TargetType</key>
+			<string>Legacy</string>
+			<key>BuildToolPath</key>
+			<string>make</string>
+			<key>BuildToolArgsString</key>
+			<string>flash -C &quot;$(PROJECT)&quot;</string>
+		</dict>
+
+		<dict>
+			<key>Name</key>
+			<string>Serial Console</string>
+			<key>TargetType</key>
+			<string>Legacy</string>
+			<key>BuildToolPath</key>
+			<string>make</string>
+			<key>BuildToolArgsString</key>
+			<string>serial -C &quot;$(PROJECT)&quot;</string>
+		</dict>
+
+		<dict>
+			<key>Name</key>
+			<string>Clean</string>
+			<key>TargetType</key>
+			<string>Legacy</string>
+			<key>BuildToolPath</key>
+			<string>make</string>
+			<key>BuildToolArgsString</key>
+			<string>clean -C &quot;$(PROJECT)&quot;</string>
+		</dict>
+		<dict>
+			<key>ProductType</key>
+			<string>com.apple.product-type.tool</string>
+			<key>Name</key>
+			<string>Index</string>
+			<key>Configurations</key>
+			<dict>
+				<key>Debug</key>
+				<dict/>
+				<key>Release</key>
+				<dict/>
+			</dict>
+			<key>BuildPhases</key>
+			<array>
+				<dict>
+					<key>Class</key>
+					<string>Sources</string>
+				</dict>
+			</array>
+		</dict>
+	</array>
+	<key>Options</key>
+	<array>
+		<dict>
+			<key>Default</key>
+			<string>atmega328p</string>
+			<key>Description</key>
+			<string>Microcontroller</string>
+			<key>Identifier</key>
+			<string>MCU</string>
+			<key>Name</key>
+			<string>MCU</string>
+			<key>SortOrder</key>
+			<integer>1</integer>
+			<key>Type</key>
+			<string>popup</string>
+			<key>Units</key>
+			<dict>
+###!### START SECTION avr_mcu
+				<key>{mcu}</key>
+				<dict>
+					<key>Project</key>
+					<dict>
+						<key>Configurations</key>
+						<dict>
+							<key>Debug</key>
+							<dict>
+							<key>GCC_PREPROCESSOR_DEFINITIONS</key>
+								<string>DEBUG=1, {mcu_define}, F_CPU=___VARIABLE_F_CPU___</string>
+							</dict>
+							<key>Release</key>
+							<dict>
+								<key>GCC_PREPROCESSOR_DEFINITIONS</key>
+								<string>{mcu_define}, F_CPU=___VARIABLE_F_CPU___</string>
+							</dict>
+						</dict>
+					</dict>
+				</dict>
+###!### END SECTION
+			</dict>
+		</dict>
+
+		<dict>
+			<key>Default</key>
+			<string>arduino</string>
+			<key>Description</key>
+			<string>Programmer</string>
+			<key>Identifier</key>
+			<string>PROGRAMMER</string>
+			<key>Name</key>
+			<string>Programmer</string>
+			<key>SortOrder</key>
+			<integer>2</integer>
+			<key>Type</key>
+			<string>popup</string>
+			<key>Units</key>
+			<dict>
+###!### START SECTION avrdude_programmers
+				<key>{programmer}</key>
+				<dict/>
+###!### END SECTION				
+			</dict>
+		</dict>
+		
+		<dict>
+			<key>Default</key>
+			<string>/dev/tty.usbserial*</string>
+			<key>Description</key>
+			<string>Programmer communication Port</string>
+			<key>Identifier</key>
+			<string>PORT</string>
+			<key>Name</key>
+			<string>IO Port</string>
+			<key>SortOrder</key>
+			<integer>3</integer>
+			<key>Required</key>
+        		<true/>
+			<key>Type</key>
+			<string>popup</string>
+			<key>Units</key>
+			<dict>
+				<key>/dev/tty.usbserial*</key>
+				<dict/>
+				<key>/dev/tty.wchusbserial*</key>
+				<dict/>
+				<key>/dev/tty.usbmodem*</key>
+				<dict/>
+				<key>usb</key>
+				<dict/>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>Default</key>
+			<string>16000000</string>
+			<key>Description</key>
+			<string>MCU frequence (in Hz)</string>
+			<key>Identifier</key>
+			<string>F_CPU</string>
+			<key>Name</key>
+			<string>Frequency</string>
+			<key>SortOrder</key>
+			<integer>4</integer>
+			<key>Required</key>
+	        	<true/>
+			<key>Type</key>
+			<string>text</string>
+			<key>NotPersisted</key>
+	        <true/>
+		</dict>
+	</array>
+</dict>
+</plist>
