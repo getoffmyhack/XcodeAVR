@@ -434,10 +434,10 @@ endif
 #####   Rules
 
 
-.PHONEY:    all build elf hex eep lss sym clean flash serial \
-            closeserial
+.PHONEY:    all build clean flash serial \
+            closeserial size
 
-build: outdirs elf hex lss sym
+build: outdirs elf hex lss sym size
 
 all: build flash serial
 
@@ -484,6 +484,9 @@ $(BINDIR)/%.lss: $(BINDIR)/%.elf
 
 $(BINDIR)/%.sym: $(BINDIR)/%.elf
 	$(NM) -n $< > $@
+
+size: elf
+	$(OBJDUMP) -Pmem-usage $(BINDIR)/$(TARGET).elf
 
 ################################################################################
 #####
