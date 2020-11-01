@@ -15,6 +15,7 @@
 /* ********************* include files              *************************/
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
